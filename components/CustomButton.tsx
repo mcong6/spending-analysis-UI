@@ -1,29 +1,38 @@
 "use client";
 
 import React from "react";
+import Button from "@mui/material/Button";
 
 interface CustomButtonProps {
   title: string;
-  type: "button";
-  bgColor: string;
-  textStyle?: string;
-  handleClick: () => void;
+  onClick?: () => void;
+  variant?: "text" | "outlined" | "contained";
+  color?: "inherit" | "primary" | "secondary" | "success" | "error" | "info" | "warning";
+  size?: "small" | "medium" | "large";
+  className?: string;
+  type?: "button" | "submit" | "reset";
 }
+
 const CustomButton: React.FC<CustomButtonProps> = ({
   title,
-  type,
-  bgColor,
-  textStyle,
-  handleClick,
+  onClick,
+  variant = "contained",
+  color = "primary",
+  size = "medium",
+  className,
+  type = "button",
 }) => {
   return (
-    <button
+    <Button
+      variant={variant}
+      color={color}
+      size={size}
+      onClick={onClick}
+      className={className}
       type={type}
-      className={`${bgColor} flex justify-center rounded-lg px-6 py-1`}
-      onClick={handleClick}
     >
-      <span className={`text-white font-bold ${textStyle}`}>{title}</span>
-    </button>
+      {title}
+    </Button>
   );
 };
 
