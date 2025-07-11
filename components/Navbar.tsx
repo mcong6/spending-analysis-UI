@@ -1,110 +1,109 @@
 "use client";
 
 import React from "react";
-import { IoIosSettings } from "react-icons/io";
-import { CgProfile } from "react-icons/cg";
-import { IoIosLogIn } from "react-icons/io";
 import Image from "next/image";
 import Link from "next/link";
-import CustomButton from "./CustomButton";
-import { IoIosNotificationsOutline } from "react-icons/io";
 import Button from "@mui/material/Button";
-import {signIn,signOut,useSession} from "next-auth/react";
+import { signIn, signOut, useSession } from "next-auth/react";
 
-function AuthButton(){
-  const {data:session}=useSession();
-  if (session){
-    return(
-      <div>
-        {session?.user?.name}
-        <Button onClick={()=>{signOut()}}>SignOut</Button>
+// Material UI Icons
+import SettingsIcon from '@mui/icons-material/Settings';
+import AccountCircleIcon from '@mui/icons-material/AccountCircle';
+import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
+
+function AuthButton() {
+  const { data: session } = useSession();
+
+  if (session) {
+    return (
+      <div className="flex items-center gap-2">
+        <span className="text-gray-700 text-sm hidden sm:block">{session?.user?.name}</span>
+        <Button
+          onClick={() => signOut()}
+          variant="outlined"
+          size="small"
+          sx={{
+            textTransform: 'none',
+            borderRadius: '9999px',
+            borderColor: 'primary.main',
+            color: 'primary.main',
+            '&:hover': { borderColor: 'primary.dark', backgroundColor: 'primary.light' }
+          }}
+        >
+          Sign Out
+        </Button>
       </div>
-    )
+    );
   }
-  return(
-    <div>
+
+  return (
+    <Button
+      onClick={() => signIn()}
+      variant="contained"
+      size="small"
+      sx={{
+        textTransform: 'none',
+        borderRadius: '9999px',
+        backgroundColor: 'primary.main',
+        '&:hover': { backgroundColor: 'primary.dark' }
+      }}
+    >
       Login
-      <Button onClick={()=>signIn()}>Login</Button>
-    </div>
-  ) 
+    </Button>
+  );
 }
 
 const Navbar = () => {
   return (
-    <nav className="flex justify-between item-center h-2 p-4 z-100 border-b-[1px] shadow-md">
-      {/* left section */}
-      <div className="flex gap-5 items-center">
-        <div className="flex items-center">
-          <Link href="/">
-            <Image src="/next.svg" alt="logo" width={50} height={10}></Image>
+    <nav className="flex justify-between items-center h-16 px-4 sm:px-6 lg:px-8 shadow-md border-b border-gray-200">
+      {/* Left Section: Logo and Navigation Links */}
+      <div className="flex items-center space-x-4 sm:space-x-6">
+        <Link href="/">
+          <Image src="/next.svg" alt="logo" width={50} height={10} className="cursor-pointer" />
+        </Link>
+        <div className="hidden md:flex items-center space-x-4">
+          <Link href="/dashboard" passHref>
+            <Button color="inherit" sx={{ textTransform: 'none', '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.04)' } }}>Dashboard</Button>
           </Link>
-        </div>
-        <div
-          className="flex justify-between items-center px-3 py-1 
-        hover:font-medium
-        rounded-xl"
-        >
-          <Link href="/dashboard">
-            <Button className="hover:bg-gray-200">Dashboard</Button>
+          <Link href="/transactions" passHref>
+            <Button color="inherit" sx={{ textTransform: 'none', '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.04)' } }}>Transactions</Button>
           </Link>
-        </div>
-        <div
-          className="flex justify-between items-center px-3 py-1 
-        hover:font-medium
-        rounded-xl"
-        >
-          <Link href="/transactions">
-            <Button className="hover:bg-gray-200">Transactions</Button>
-          </Link>
-        </div>
-
-        <div
-          className="flex justify-between items-center px-3 py-1 
-        hover:font-medium
-        rounded-xl"
-        >
-          <Link href="/transactions/add_transactions">
-            <Button className="hover:bg-gray-200">Add Transactions</Button>
+          <Link href="/transactions/add_transactions" passHref>
+            <Button color="inherit" sx={{ textTransform: 'none', '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.04)' } }}>Add Transactions</Button>
           </Link>
         </div>
       </div>
 
-      {/* right section */}
-      <div className="flex items-center justify-between gap-5">
-        <div
-          className="flex flex-row justify-between items-center 
-        hover:bg-gray-300 rounded-full p-1"
-        >
-          <Link href="/" className="">
-            <IoIosSettings size="22px" />
-          </Link>
-        </div>
-        <div
-          className="flex flex-row justify-between items-center 
-        hover:bg-gray-300 rounded-full p-1"
-        >
-          <Link href="/">
-            <CgProfile size="22px" />
-          </Link>
-        </div>
-        <div
-          className="flex flex-row justify-between items-center 
-        hover:bg-gray-300 rounded-full p-1"
-        >
-          <Link href="/">
-            <IoIosNotificationsOutline size="22px" />
-          </Link>
-        </div>
-        <AuthButton/>
-        {/* <Button variant="contained" className="flex rounded-full bg-blue-600">
-          Log in
-        </Button> */}
-        {/* <CustomButton
-          title="Log in"
-          type="button"
-          bgColor="primary-blue"
-          handleClick={() => console.log("1")}
-        /> */}
+      {/* Right Section: Icons and Auth Button */}
+      <div className="flex items-center space-x-3 sm:space-x-4">
+        <Link href="/settings" passHref>
+          <Button
+            variant="text"
+            color="inherit"
+            sx={{ minWidth: 'auto', padding: '8px', borderRadius: '9999px', '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.04)' } }}
+          >
+            <SettingsIcon sx={{ fontSize: 22 }} />
+          </Button>
+        </Link>
+        <Link href="/profile" passHref>
+          <Button
+            variant="text"
+            color="inherit"
+            sx={{ minWidth: 'auto', padding: '8px', borderRadius: '9999px', '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.04)' } }}
+          >
+            <AccountCircleIcon sx={{ fontSize: 22 }} />
+          </Button>
+        </Link>
+        <Link href="/notifications" passHref>
+          <Button
+            variant="text"
+            color="inherit"
+            sx={{ minWidth: 'auto', padding: '8px', borderRadius: '9999px', '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.04)' } }}
+          >
+            <NotificationsNoneIcon sx={{ fontSize: 22 }} />
+          </Button>
+        </Link>
+        <AuthButton />
       </div>
     </nav>
   );
