@@ -1,202 +1,163 @@
 "use client";
-import React, { ChangeEvent, useEffect, useState } from "react";
-import Papa from "papaparse";
+import React, { useEffect, useState } from "react";
 import {
   Box,
-  Button,
   FormControl,
   InputLabel,
   MenuItem,
   Select,
+  SelectChangeEvent,
+  Typography,
+  Grid,
+  TableContainer,
+  Table,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableBody,
+  Paper,
 } from "@mui/material";
-import ProgressTracker from "./ProgressTracker";
 
-const FileConfig = ({
-  data,
-  setData,
-  headerMap,
-  headers,
-  setHeaders,
-  transDate,
-  handleTransDateChange,
-  description,
-  handleDescriptionChange,
-  notes,
-  handleNotesChange,
-  transType,
-  handleTypeChange,
-  amount,
-  handleAmountChange,
-  source,
-  handleSourceChange,
-  // primaryCategory,
-  // handlePrimaryCategoryChange,
-  secondaryCategory,
-  handleSecondaryCategoryChange,
-  setConfigDone,
-}) => {
-  const cleanData = () => {
-    for (let i = 0; i < data.length; i++) {
-      for (let key of Object.keys(data[i])) {
-        if (!headerMap.hasOwnProperty(key)) {
-          delete data[i][key];
+interface FileConfigProps {
+  data: any[];
+  headers: string[];
+  headerMap: { [key: string]: string };
+  setHeaderMap: (headerMap: { [key: string]: string }) => void;
+  dataSource: string;
+}
+
+const transactionFields = [
+  { id: "transaction_date", label: "Transaction Date", aliases: ["Date", "Transaction Date", "Post Date", "Posting Date"] },
+  { id: "description", label: "Description", aliases: ["Description", "Memo", "Payee"] },
+  { id: "type", label: "Type", aliases: ["Type", "Transaction Type"] },
+  { id: "amount", label: "Amount", aliases: ["Amount", "Debit", "Credit"] },
+  { id: "category_level2", label: "Secondary Category", aliases: ["Category", "Subcategory"] },
+];
+
+const FileConfig = ({ data, headers, headerMap, setHeaderMap, dataSource }: FileConfigProps) => {
+  const [manualHeaderMap, setManualHeaderMap] = useState<{ [key: string]: string }>({});
+
+  useEffect(() => {
+    const newHeaderMap: { [key: string]: string } = {};
+    const lowerCaseHeaders = headers.map(h => h.toLowerCase());
+
+    transactionFields.forEach(field => {
+      const foundAlias = field.aliases.find(alias => lowerCaseHeaders.includes(alias.toLowerCase()));
+      if (foundAlias) {
+        const originalHeader = headers.find(h => h.toLowerCase() === foundAlias.toLowerCase());
+        if (originalHeader) {
+          newHeaderMap[originalHeader] = field.id;
         }
       }
+    });
+
+    // Only update parent headerMap if it's actually different
+    if (JSON.stringify(newHeaderMap) !== JSON.stringify(headerMap)) {
+      setHeaderMap(newHeaderMap);
     }
+    setManualHeaderMap(newHeaderMap);
+  }, [headers, dataSource, setHeaderMap, headerMap]); // Added headerMap to dependencies
+
+  const handleHeaderChange = (
+    event: SelectChangeEvent<string>,
+    fieldId: string
+  ) => {
+    const { value } = event.target;
+    const updatedMap = { ...manualHeaderMap };
+    
+    // Remove the old mapping for this fieldId if it exists
+    for (const key in updatedMap) {
+      if (updatedMap[key] === fieldId) {
+        delete updatedMap[key];
+      }
+    }
+    // Add the new mapping
+    updatedMap[value] = fieldId;
+    setManualHeaderMap(updatedMap);
+    setHeaderMap(updatedMap);
   };
-  const handleConfirm = (e) => {
-    e.preventDefault();
-    console.log(data);
 
-    cleanData();
-    for (let i = 0; i < data.length; i++) {
-      for (let key of Object.keys(data[i])) {
-        if (key in data[i] && key in headerMap) {
-          data[i][headerMap[key]] = data[i][key];
-          delete data[i][key];
-        }
-      }
-    }
-    setData(data);
-    setConfigDone(true);
+  const getMappedHeader = (fieldId: string) => {
+    return Object.keys(manualHeaderMap).find(key => manualHeaderMap[key] === fieldId) || "";
+  };
+
+  const getUnmappedHeaders = (currentMappedHeader: string) => {
+    const mappedValues = Object.keys(manualHeaderMap);
+    return headers.filter(header => 
+      !mappedValues.includes(header) || header === currentMappedHeader
+    );
   };
 
   return (
-    <div className="flex flex-col justify-center items-center mt-3 ">
-      {/* Map column names */}
-      <div className="flex flex-col items-center justify-between my-3">
-        <h3 className="text-gray-600">Map Column Names</h3>
-        <form className="w-60 flex flex-col gap-3">
-          <FormControl fullWidth>
-            <InputLabel id="transaction-date">Transaction Date</InputLabel>
-            <Select
-              labelId="transaction-date"
-              id="transaction-date"
-              value={transDate}
-              label="transDate"
-              onChange={handleTransDateChange}
-            >
-              {headers.map((item) => (
-                <MenuItem value={item}>{item}</MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          <FormControl fullWidth>
-            <InputLabel id="transaction-description">Description</InputLabel>
-            <Select
-              labelId="transaction-description"
-              id="transaction-description"
-              value={description}
-              label="description"
-              onChange={handleDescriptionChange}
-            >
-              {headers.map((item) => (
-                <MenuItem value={item}>{item}</MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+    <Box sx={{ mt: 3 }}>
+      <Typography variant="h6" gutterBottom>
+        Configure Columns
+      </Typography>
 
-          <FormControl fullWidth>
-            <InputLabel id="transaction-notes">Notes</InputLabel>
-            <Select
-              labelId="transaction-notes"
-              id="transaction-notes"
-              value={notes}
-              label="notes"
-              onChange={handleNotesChange}
-            >
-              {headers.map((item) => (
-                <MenuItem value={item}>{item}</MenuItem>
+      <Typography variant="subtitle1" sx={{ mt: 2, mb: 1 }}>
+        Data Preview (First 5 rows):
+      </Typography>
+      <TableContainer component={Paper} sx={{ maxHeight: 200, overflow: 'auto', mb: 3 }}>
+        <Table stickyHeader size="small">
+          <TableHead>
+            <TableRow>
+              {headers.map((header) => (
+                <TableCell key={header} sx={{ fontWeight: 'bold' }}>{header}</TableCell>
               ))}
-            </Select>
-          </FormControl>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {data.slice(0, 5).map((row, rowIndex) => (
+              <TableRow key={rowIndex}>
+                {headers.map((header) => (
+                  <TableCell key={`${rowIndex}-${header}`}>{row[header]}</TableCell>
+                ))}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
 
-          <FormControl fullWidth>
-            <InputLabel id="transaction-type">Type</InputLabel>
-            <Select
-              labelId="transaction-type"
-              id="transaction-type"
-              value={transType}
-              label="transType"
-              onChange={handleTypeChange}
-            >
-              {headers.map((item) => (
-                <MenuItem value={item}>{item}</MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+      <Typography variant="subtitle1" sx={{ mb: 1 }}>
+        Map your file columns to transaction fields:
+      </Typography>
+      <Grid container spacing={2}>
+        {transactionFields.map((field) => {
+          const currentMappedHeader = getMappedHeader(field.id);
+          const isAutoMapped = Object.keys(headerMap).some(key => headerMap[key] === field.id && key === currentMappedHeader);
 
-          <FormControl fullWidth>
-            <InputLabel id="transaction-amount">Amount</InputLabel>
-            <Select
-              labelId="transaction-amount"
-              id="transaction-amount"
-              value={amount}
-              label="amount"
-              onChange={handleAmountChange}
-            >
-              {headers.map((item) => (
-                <MenuItem value={item}>{item}</MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-
-          <FormControl fullWidth>
-            <InputLabel id="transaction-source">Source</InputLabel>
-            <Select
-              labelId="transaction-source"
-              id="transaction-source"
-              value={source}
-              label="source"
-              onChange={handleSourceChange}
-            >
-              {headers.map((item) => (
-                <MenuItem value={item}>{item}</MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-
-          {/* <FormControl fullWidth>
-            <InputLabel id="transaction-primary-category">
-              Primary Category
-            </InputLabel>
-            <Select
-              labelId="transaction-primary-category"
-              id="transaction-primary-category"
-              value={primaryCategory}
-              label="primaryCategory"
-              onChange={handlePrimaryCategoryChange}
-            >
-              {headers.map((item) => (
-                <MenuItem value={item}>{item}</MenuItem>
-              ))}
-            </Select>
-          </FormControl> */}
-
-          <FormControl fullWidth>
-            <InputLabel id="transaction-ssecondary-category">
-              Secondary Category
-            </InputLabel>
-            <Select
-              labelId="transaction-ssecondary-category"
-              id="transaction-ssecondary-category"
-              value={secondaryCategory}
-              label="secondaryCategory"
-              onChange={handleSecondaryCategoryChange}
-            >
-              {headers.map((item) => (
-                <MenuItem value={item}>{item}</MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          <div className="flex gap-3 items-center justify-end">
-            <Button onClick={handleConfirm} variant="contained">
-              confirm
-            </Button>
-          </div>
-        </form>
-      </div>
-    </div>
+          return (
+            <Grid item xs={12} sm={6} key={field.id}>
+              <FormControl fullWidth>
+                <InputLabel id={`${field.id}-label`}>{field.label}</InputLabel>
+                <Select
+                  labelId={`${field.id}-label`}
+                  id={field.id}
+                  value={currentMappedHeader}
+                  onChange={(e) => handleHeaderChange(e, field.id)}
+                  label={field.label}
+                  sx={{ 
+                    backgroundColor: isAutoMapped ? '#e8f5e9' : 'inherit', // Light green for auto-mapped
+                  }}
+                >
+                  <MenuItem value=""><em>None</em></MenuItem>
+                  {getUnmappedHeaders(currentMappedHeader).map((header) => (
+                    <MenuItem key={header} value={header}>
+                      {header}
+                    </MenuItem>
+                  ))}
+                </Select>
+                {isAutoMapped && (
+                  <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5 }}>
+                    Auto-mapped
+                  </Typography>
+                )}
+              </FormControl>
+            </Grid>
+          );
+        })}
+      </Grid>
+    </Box>
   );
 };
 

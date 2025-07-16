@@ -1,76 +1,75 @@
 "use client";
-import FileConfig from "@/components/FileConfig";
+import React, { useState, useEffect } from "react";
+import Papa from "papaparse";
+import {
+  Stepper,
+  Step,
+  StepLabel,
+  Button,
+  Box,
+  Container,
+  Paper,
+  Typography,
+} from "@mui/material";
 import FileUpload from "@/components/FileUpload";
-import UploadFilePreview from "@/components/UploadFilePreview";
-import { SelectChangeEvent } from "@mui/material";
-import React, { useState } from "react";
-import Stepper from "@mui/material/Stepper";
-import Step from "@mui/material/Step";
-import StepLabel from "@mui/material/StepLabel";
-import Button from "@mui/material/Button";
-import Box from "@mui/material/Box";
+import FileConfig from "@/components/FileConfig";
 
-const steps = ["Upload File", "Configure Columns", "Preview and Submit"];
+const steps = ["Upload File", "Configure Columns"];
 
-const AddTransaction = () => {
+const AddTransactionPage = () => {
   const [activeStep, setActiveStep] = useState(0);
-  const [fileUploaded, setFileUploaded] = useState(false);
-  const [data, setData] = useState([]);
-  const [headerMap, setHeaderMap] = useState({});
-  const [transDate, setTransDate] = React.useState("");
-  const [headers, setHeaders] = useState(["No Options"]);
-  const [configDone, setConfigDone] = useState(false);
+  const [files, setFiles] = useState<File[]>([]); // State to hold selected files
+  const [data, setData] = useState<any[]>([]);
+  const [headers, setHeaders] = useState<string[]>([]);
+  const [headerMap, setHeaderMap] = useState<{ [key: string]: string }>({});
+  const [dataSource, setDataSource] = useState<string>('');
 
-  const handleTransDateChange = (event: SelectChangeEvent) => {
-    setTransDate(event.target.value as string);
-    headerMap[event.target.value] = "transaction_date";
-    setHeaderMap(headerMap);
-  };
+  // Effect to process files whenever the 'files' state changes
+  useEffect(() => {
+    if (files.length > 0) {
+      let allData: any[] = [];
+      let allHeaders: string[] = [];
 
-  const [description, setDescription] = useState("");
-  const handleDescriptionChange = (event: SelectChangeEvent) => {
-    setDescription(event.target.value as string);
-    headerMap[event.target.value] = "description";
-    setHeaderMap(headerMap);
-  };
+      const processFile = (file: File) => {
+        return new Promise<void>((resolve) => {
+          Papa.parse(file, {
+            header: true,
+            complete: function (results) {
+              allData = allData.concat(results.data);
+              if (results.meta.fields) {
+                allHeaders = Array.from(new Set([...allHeaders, ...results.meta.fields]));
+              }
+              resolve();
+            },
+            error: function(err) {
+              console.error("Error parsing file:", file.name, err);
+              resolve(); // Resolve even on error to continue processing other files
+            }
+          });
+        });
+      };
 
-  const [notes, setNotes] = useState("");
-  const handleNotesChange = (event: SelectChangeEvent) => {
-    setNotes(event.target.value as string);
-    headerMap[event.target.value] = "notes";
-    setHeaderMap(headerMap);
-  };
-
-  const [transType, setTransType] = useState("");
-  const handleTypeChange = (event: SelectChangeEvent) => {
-    setTransType(event.target.value as string);
-    headerMap[event.target.value] = "type";
-    setHeaderMap(headerMap);
-  };
-
-  const [amount, setAmount] = useState("");
-  const handleAmountChange = (event: SelectChangeEvent) => {
-    setAmount(event.target.value as number);
-    headerMap[event.target.value] = "amount";
-    setHeaderMap(headerMap);
-  };
-
-  const [source, setSource] = useState("");
-  const handleSourceChange = (event: SelectChangeEvent) => {
-    setSource(event.target.value as string);
-    headerMap[event.target.value] = "source";
-    setHeaderMap(headerMap);
-  };
-
-  const [secondaryCategory, setSecondaryCategory] = useState("");
-  const handleSecondaryCategoryChange = (event: SelectChangeEvent) => {
-    setSecondaryCategory(event.target.value as string);
-    headerMap[event.target.value] = "category_level2";
-    setHeaderMap(headerMap);
-  };
+      Promise.all(files.map(processFile)).then(() => {
+        setData(allData);
+        setHeaders(allHeaders);
+      });
+    } else {
+      setData([]);
+      setHeaders([]);
+    }
+  }, [files]); // Dependency array: run this effect when 'files' changes
 
   const handleNext = () => {
-    setActiveStep((prevActiveStep) => prevActiveStep + 1);
+    if (activeStep === steps.length - 1) {
+      // This is the last step, so handle submission
+      console.log("Submitting data:", { data, headerMap, dataSource });
+      // Here you would typically send the data to your backend
+      // For now, just log and reset or navigate
+      // setActiveStep(0); // Optionally reset to first step
+      // alert("Data submitted successfully!");
+    } else {
+      setActiveStep((prevActiveStep) => prevActiveStep + 1);
+    }
   };
 
   const handleBack = () => {
@@ -82,79 +81,74 @@ const AddTransaction = () => {
       case 0:
         return (
           <FileUpload
-            setFileUploaded={setFileUploaded}
-            activeStep={0}
-            setData={setData}
-            setHeaders={setHeaders}
+            files={files} // Pass files state down as prop
+            setFiles={setFiles}
+            dataSource={dataSource}
+            setDataSource={setDataSource}
           />
         );
       case 1:
         return (
           <FileConfig
-            activeStep={1}
             data={data}
-            setData={setData}
-            headerMap={headerMap}
             headers={headers}
-            setHeaders={setHeaders}
-            transDate={transDate}
-            handleTransDateChange={handleTransDateChange}
-            description={description}
-            handleDescriptionChange={handleDescriptionChange}
-            notes={notes}
-            handleNotesChange={handleNotesChange}
-            transType={transType}
-            handleTypeChange={handleTypeChange}
-            amount={amount}
-            handleAmountChange={handleAmountChange}
-            source={source}
-            handleSourceChange={handleSourceChange}
-            secondaryCategory={secondaryCategory}
-            handleSecondaryCategoryChange={handleSecondaryCategoryChange}
-            setConfigDone={setConfigDone}
+            headerMap={headerMap}
+            setHeaderMap={setHeaderMap}
+            dataSource={dataSource}
           />
         );
-      case 2:
-        return <UploadFilePreview activeStep={2} data={data} />;
       default:
         return "Unknown step";
     }
   };
 
+  const isNextDisabled = () => {
+    if (activeStep === 0 && (files.length === 0 || !dataSource)) {
+      return true;
+    }
+    if (activeStep === 1 && Object.keys(headerMap).length === 0) {
+      return true;
+    }
+    return false;
+  };
+
   return (
-    <Box sx={{ width: "100%", p: 3 }}>
-      <Stepper activeStep={activeStep} alternativeLabel>
-        {steps.map((label) => (
-          <Step key={label}>
-            <StepLabel>{label}</StepLabel>
-          </Step>
-        ))}
-      </Stepper>
-      <div>
-        {getStepContent(activeStep)}
-        <Box sx={{ display: "flex", flexDirection: "row", pt: 2 }}>
-          <Button
-            color="inherit"
-            disabled={activeStep === 0}
-            onClick={handleBack}
-            sx={{ mr: 1 }}
-          >
-            Back
-          </Button>
-          <Box sx={{ flex: "1 1 auto" }} />
-          <Button
-            onClick={handleNext}
-            disabled={
-              (activeStep === 0 && !fileUploaded) ||
-              (activeStep === 1 && !configDone)
-            }
-          >
-            {activeStep === steps.length - 1 ? "Finish" : "Next"}
-          </Button>
-        </Box>
-      </div>
-    </Box>
+    <Container component="main" maxWidth="md" sx={{ mb: 4 }}>
+      <Paper
+        variant="outlined"
+        sx={{ my: { xs: 3, md: 6 }, p: { xs: 2, md: 3 } }}
+      >
+        <Typography component="h1" variant="h4" align="center">
+          Add Transactions
+        </Typography>
+        <Stepper activeStep={activeStep} sx={{ pt: 3, pb: 5 }}>
+          {steps.map((label) => (
+            <Step key={label}>
+              <StepLabel>{label}</StepLabel>
+            </Step>
+          ))}
+        </Stepper>
+        <>
+          {getStepContent(activeStep)}
+          <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+            {activeStep !== 0 && (
+              <Button onClick={handleBack} sx={{ mt: 3, ml: 1 }}>
+                Back
+              </Button>
+            )}
+            <Button
+              variant="contained"
+              onClick={handleNext}
+              sx={{ mt: 3, ml: 1 }}
+              disabled={isNextDisabled()}
+            >
+              {activeStep === steps.length - 1 ? "Submit" : "Next"}
+            </Button>
+          </Box>
+        </>
+      </Paper>
+    </Container>
   );
 };
 
-export default AddTransaction;
+export default AddTransactionPage;
