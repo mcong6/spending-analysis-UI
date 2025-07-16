@@ -37,26 +37,35 @@ const transactionFields = [
 const FileConfig = ({ data, headers, headerMap, setHeaderMap, dataSource }: FileConfigProps) => {
   const [manualHeaderMap, setManualHeaderMap] = useState<{ [key: string]: string }>({});
 
+  // Effect for auto-mapping initialization
   useEffect(() => {
-    const newHeaderMap: { [key: string]: string } = {};
-    const lowerCaseHeaders = headers.map(h => h.toLowerCase());
+    // Only auto-map if headers or dataSource change, and manualHeaderMap is empty
+    // This ensures that auto-mapping only happens on initial load or when new files are uploaded
+    // and doesn't overwrite user's manual changes.
+    if (headers.length > 0 && Object.keys(manualHeaderMap).length === 0) {
+      const newHeaderMap: { [key: string]: string } = {};
+      const lowerCaseHeaders = headers.map(h => h.toLowerCase());
 
-    transactionFields.forEach(field => {
-      const foundAlias = field.aliases.find(alias => lowerCaseHeaders.includes(alias.toLowerCase()));
-      if (foundAlias) {
-        const originalHeader = headers.find(h => h.toLowerCase() === foundAlias.toLowerCase());
-        if (originalHeader) {
-          newHeaderMap[originalHeader] = field.id;
+      transactionFields.forEach(field => {
+        const foundAlias = field.aliases.find(alias => lowerCaseHeaders.includes(alias.toLowerCase()));
+        if (foundAlias) {
+          const originalHeader = headers.find(h => h.toLowerCase() === foundAlias.toLowerCase());
+          if (originalHeader) {
+            newHeaderMap[originalHeader] = field.id;
+          }
         }
-      }
-    });
-
-    // Only update parent headerMap if it's actually different
-    if (JSON.stringify(newHeaderMap) !== JSON.stringify(headerMap)) {
-      setHeaderMap(newHeaderMap);
+      });
+      setManualHeaderMap(newHeaderMap);
     }
-    setManualHeaderMap(newHeaderMap);
-  }, [headers, dataSource, setHeaderMap, headerMap]); // Added headerMap to dependencies
+  }, [headers, dataSource]); // Dependencies: headers and dataSource
+
+  // Effect to propagate manualHeaderMap changes to parent's headerMap
+  useEffect(() => {
+    // Only update parent headerMap if it's actually different
+    if (JSON.stringify(manualHeaderMap) !== JSON.stringify(headerMap)) {
+      setHeaderMap(manualHeaderMap);
+    }
+  }, [manualHeaderMap, setHeaderMap, headerMap]); // Dependencies: manualHeaderMap and parent's setHeaderMap
 
   const handleHeaderChange = (
     event: SelectChangeEvent<string>,
@@ -74,18 +83,10 @@ const FileConfig = ({ data, headers, headerMap, setHeaderMap, dataSource }: File
     // Add the new mapping
     updatedMap[value] = fieldId;
     setManualHeaderMap(updatedMap);
-    setHeaderMap(updatedMap);
   };
 
   const getMappedHeader = (fieldId: string) => {
     return Object.keys(manualHeaderMap).find(key => manualHeaderMap[key] === fieldId) || "";
-  };
-
-  const getUnmappedHeaders = (currentMappedHeader: string) => {
-    const mappedValues = Object.keys(manualHeaderMap);
-    return headers.filter(header => 
-      !mappedValues.includes(header) || header === currentMappedHeader
-    );
   };
 
   return (
@@ -141,11 +142,21 @@ const FileConfig = ({ data, headers, headerMap, setHeaderMap, dataSource }: File
                   }}
                 >
                   <MenuItem value=""><em>None</em></MenuItem>
-                  {getUnmappedHeaders(currentMappedHeader).map((header) => (
-                    <MenuItem key={header} value={header}>
-                      {header}
-                    </MenuItem>
-                  ))}
+                  {headers.map((header) => {
+                    const isMappedToAnotherField = Object.keys(manualHeaderMap).some(
+                      (key) => manualHeaderMap[key] === header && key !== currentMappedHeader
+                    );
+                    return (
+                      <MenuItem
+                        key={header}
+                        value={header}
+                        disabled={isMappedToAnotherField}
+                      >
+                        {header}
+                        {isMappedToAnotherField && " (Mapped elsewhere)"}
+                      </MenuItem>
+                    );
+                  })}
                 </Select>
                 {isAutoMapped && (
                   <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5 }}>

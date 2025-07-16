@@ -18,20 +18,10 @@ import KeyboardReturnIcon from "@mui/icons-material/KeyboardReturn";
 const columns: GridColDef[] = [
   { field: "id", headerName: "id", width: 90, hide: true },
   { field: "Transaction Date", headerName: "Transaction Date", width: 120 },
-  // {
-  //   field: "Post Date",
-  //   headerName: "Post Date",
-  //   type:'date',
-  //   editable: true,
-  // },
   {
     field: "Description",
     headerName: "Description",
-    // width: 300,
     flex: 0.5,
-    // minWidth: 50,
-    // editable: true,
-    // getRowHeight={() => 'auto'}
   },
   {
     field: "Category",

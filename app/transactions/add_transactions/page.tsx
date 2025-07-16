@@ -23,6 +23,7 @@ const AddTransactionPage = () => {
   const [headers, setHeaders] = useState<string[]>([]);
   const [headerMap, setHeaderMap] = useState<{ [key: string]: string }>({});
   const [dataSource, setDataSource] = useState<string>('');
+  const [isSubmitting, setIsSubmitting] = useState(false); // State to manage submission loading
 
   // Effect to process files whenever the 'files' state changes
   useEffect(() => {
@@ -59,14 +60,73 @@ const AddTransactionPage = () => {
     }
   }, [files]); // Dependency array: run this effect when 'files' changes
 
+  const handleSubmit = async () => {
+    setIsSubmitting(true); // Set loading state
+    const transactionsToSend = data.map(row => {
+      const newTransaction: { [key: string]: any } = {};
+
+      // Apply mapped headers
+      for (const csvHeader in headerMap) {
+        const apiField = headerMap[csvHeader];
+        if (row[csvHeader] !== undefined) {
+          newTransaction[apiField] = row[csvHeader];
+        }
+      }
+
+      // Map 'type' from UI to 'type_name' for API
+      if (newTransaction.type !== undefined) {
+        newTransaction.type_name = newTransaction.type;
+        delete newTransaction.type;
+      }
+
+      // Ensure all required API fields are present, providing defaults if not mapped
+      newTransaction.transaction_date = newTransaction.transaction_date || "";
+      newTransaction.description = newTransaction.description || "";
+      newTransaction.notes = newTransaction.notes || ""; 
+      newTransaction.category_level1 = newTransaction.category_level1 || ""; 
+      newTransaction.category_level2 = newTransaction.category_level2 || "";
+      newTransaction.type_name = newTransaction.type_name || ""; 
+
+      newTransaction.amount = parseFloat(newTransaction.amount) || 0.0; 
+
+      // Add the data source
+      newTransaction.source = dataSource;
+
+      return newTransaction;
+    });
+
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/transaction`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(transactionsToSend),
+      });
+
+      if (response.ok) {
+        alert("Transactions uploaded successfully!");
+        setActiveStep(0);
+        setFiles([]);
+        setData([]);
+        setHeaders([]);
+        setHeaderMap({});
+        setDataSource('');
+      } else {
+        const errorData = await response.json();
+        alert(`Failed to upload transactions: ${errorData.message || response.statusText}`);
+      }
+    } catch (error) {
+      console.error("Error uploading transactions:", error);
+      alert("An error occurred while uploading transactions.");
+    } finally {
+      setIsSubmitting(false); // Reset loading state
+    }
+  };
+
   const handleNext = () => {
     if (activeStep === steps.length - 1) {
-      // This is the last step, so handle submission
-      console.log("Submitting data:", { data, headerMap, dataSource });
-      // Here you would typically send the data to your backend
-      // For now, just log and reset or navigate
-      // setActiveStep(0); // Optionally reset to first step
-      // alert("Data submitted successfully!");
+      handleSubmit();
     } else {
       setActiveStep((prevActiveStep) => prevActiveStep + 1);
     }
@@ -81,7 +141,7 @@ const AddTransactionPage = () => {
       case 0:
         return (
           <FileUpload
-            files={files} // Pass files state down as prop
+            files={files} 
             setFiles={setFiles}
             dataSource={dataSource}
             setDataSource={setDataSource}
@@ -140,9 +200,9 @@ const AddTransactionPage = () => {
               variant="contained"
               onClick={handleNext}
               sx={{ mt: 3, ml: 1 }}
-              disabled={isNextDisabled()}
+              disabled={isNextDisabled() || isSubmitting}
             >
-              {activeStep === steps.length - 1 ? "Submit" : "Next"}
+              {isSubmitting ? "Submitting..." : (activeStep === steps.length - 1 ? "Submit" : "Next")}
             </Button>
           </Box>
         </>
