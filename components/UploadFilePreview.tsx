@@ -6,7 +6,7 @@ import Paper from "@mui/material/Paper";
 import { useRouter } from "next/navigation";
 import ProgressTracker from "./ProgressTracker";
 
-const UploadFilePreview = ({ activeStep, data }) => {
+const UploadFilePreview = ({ data }) => {
   const router = useRouter();
 
   const handleCancel = () => {
@@ -33,8 +33,7 @@ const UploadFilePreview = ({ activeStep, data }) => {
   }
   return (
     <div className="flex flex-col mt-3">
-      {/* Progress tracker */}
-      <ProgressTracker activeStep={activeStep} />
+      
 
       <div className="flex flex-col items-center justify-between my-3">
         <h3 className="text-gray-600">Data Preview (First 10 rows) </h3>

@@ -12,7 +12,6 @@ import {
 import ProgressTracker from "./ProgressTracker";
 
 const FileConfig = ({
-  activeStep,
   data,
   setData,
   headerMap,
@@ -45,7 +44,7 @@ const FileConfig = ({
       }
     }
   };
-  const handleOnSubmit = (e) => {
+  const handleConfirm = (e) => {
     e.preventDefault();
     console.log(data);
 
@@ -64,13 +63,10 @@ const FileConfig = ({
 
   return (
     <div className="flex flex-col justify-center items-center mt-3 ">
-      {/* Progress tracker */}
-      <ProgressTracker activeStep={activeStep} />
-
       {/* Map column names */}
       <div className="flex flex-col items-center justify-between my-3">
         <h3 className="text-gray-600">Map Column Names</h3>
-        <form onSubmit={handleOnSubmit} className="w-60 flex flex-col gap-3">
+        <form className="w-60 flex flex-col gap-3">
           <FormControl fullWidth>
             <InputLabel id="transaction-date">Transaction Date</InputLabel>
             <Select
@@ -194,8 +190,8 @@ const FileConfig = ({
             </Select>
           </FormControl>
           <div className="flex gap-3 items-center justify-end">
-            <Button type="submit" variant="contained">
-              submit
+            <Button onClick={handleConfirm} variant="contained">
+              confirm
             </Button>
           </div>
         </form>
